@@ -1,30 +1,36 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const dotenv = require('dotenv');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const dotenv = require("dotenv");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 
-const authenticationRoute = require('./routes/authentication');
+const authenticationRoute = require("./routes/authentication");
+const gameRoute = require("./routes/game");
+const userGameStatusRoute = require("./routes/userGameStatus");
 
-require('./config/dbConn');
+require("./config/dbConn");
 
 //assign port number
 const PORT = process.env.PORT;
 
-app.get('/', (req, res) => {
-    res.send("Hi");
-})
+app.get("/", (req, res) => {
+  res.send("Hi");
+});
 
 dotenv.config();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: true
-}));
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 
-app.use('/', authenticationRoute);
+app.use("/", authenticationRoute);
+app.use("/game", gameRoute);
+app.use("/userGameStatus", userGameStatusRoute);
 
 app.listen(PORT, () => {
-    console.log("Server is ready to run...")
+  console.log("Server is ready to run...");
 });
