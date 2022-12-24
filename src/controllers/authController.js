@@ -2,12 +2,13 @@ const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
+const nodemailer = require("nodemailer");
 
 dotenv.config();
 
-const generateToken = (payload) => {
+const generateToken = (payload, expiresIn = "2h") => {
   return jwt.sign(payload, process.env.TOKEN_SECRET, {
-    expiresIn: "2h",
+    expiresIn: expiresIn,
   });
 };
 
@@ -138,8 +139,34 @@ const sendEmail = async (req, res) => {
     if (check) {
       return res.json({ success: false, message: "User already exist" });
     } else {
-      const token = generateToken({ data: data });
+      const token = generateToken({ data: data }, (expiresIn = "10m"));
+
       //TODO: send email here
+      const transporter = nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      let mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: data.email,
+        subject: `${process.env.APP_NAME || "AutsiLearn"} - Verify Email`,
+        html: `To verify your email, click here: <a href=${
+          process.env.CONFIRM_URL + "?token=" + token
+        }>${token}</a>`,
+      };
+
+      transporter.sendMail(mailOptions, (err) => {
+        if (err) {
+          console.log("Email not sent!");
+        } else {
+          console.log("Email sent!");
+        }
+      });
+
       res.json({
         success: true,
         message: "Email sent, verify email now!",
@@ -150,7 +177,7 @@ const sendEmail = async (req, res) => {
     console.log(err);
     res.json({
       success: false,
-      error: "Something went wrong, email not sent!",
+      error: "Something went wrong, email not sent! " + err,
     });
   }
 };
