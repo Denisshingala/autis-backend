@@ -5,8 +5,8 @@ const User = require("../models/user");
 
 dotenv.config();
 
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.TOKEN_SECRET, {
+const generateToken = (payload) => {
+  return jwt.sign(payload, process.env.TOKEN_SECRET, {
     expiresIn: "2h",
   });
 };
@@ -52,7 +52,7 @@ const login = async (req, res) => {
 
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (isValidPassword) {
-    const token = generateToken(user._id);
+    const token = generateToken({ id: user._id });
     res.json({
       success: true,
       message: "Successful signup",
@@ -96,13 +96,15 @@ const login = async (req, res) => {
 
 const signUpController = async (req, res) => {
   try {
-    const data = req.body;
+    const { emailToken } = req.body;
+    jwt.verify(emailToken, process.env.TOKEN_SECRET, async (err, payload) => {
+      if (err) {
+        return res
+          .status(401)
+          .json({ success: false, error: "Token is invalid" });
+      }
 
-    // for check user is exist or not
-    const check = await User.findOne({ email: data.email });
-    if (check) {
-      return res.json({ success: false, message: "User already exist" });
-    } else {
+      const data = payload.data;
       const hash_password = await bcrypt.hash(data.password, 10);
       let userData = new User({
         name: data.name,
@@ -112,19 +114,45 @@ const signUpController = async (req, res) => {
         country: data.country,
         DOB: data.DOB,
       });
-      const user = await userData.save();
-      const token = generateToken(user._id);
+
+      const user = await User(userData).save();
+      const token = generateToken({ id: user._id });
       res.json({
         success: true,
         message: "Successful signup",
         data: user,
         token: token,
       });
-    }
+    });
   } catch (err) {
     console.log(err);
     res.json({ success: false, error: "Signup unsuccessful" });
   }
 };
 
-module.exports = { signUpController, login };
+const sendEmail = async (req, res) => {
+  try {
+    const data = req.body;
+    // for check user is exist or not
+    const check = await User.findOne({ email: data.email });
+    if (check) {
+      return res.json({ success: false, message: "User already exist" });
+    } else {
+      const token = generateToken({ data: data });
+      //TODO: send email here
+      res.json({
+        success: true,
+        message: "Email sent, verify email now!",
+        token: token,
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.json({
+      success: false,
+      error: "Something went wrong, email not sent!",
+    });
+  }
+};
+
+module.exports = { signUpController, login, sendEmail, authenticateToken };

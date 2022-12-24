@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const authenticationRoute = require("./routes/authentication");
 const gameRoute = require("./routes/game");
 const userGameStatusRoute = require("./routes/userGameStatus");
+const { authenticateToken } = require("./controllers/authController");
 
 require("./config/dbConn");
 
@@ -28,8 +29,8 @@ app.use(
 );
 
 app.use("/", authenticationRoute);
-app.use("/game", gameRoute);
-app.use("/userGameStatus", userGameStatusRoute);
+app.use("/game", authenticateToken, gameRoute);
+app.use("/userGameStatus", authenticateToken, userGameStatusRoute);
 
 app.listen(PORT, () => {
   console.log("Server is ready to run...");
