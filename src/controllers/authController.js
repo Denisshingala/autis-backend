@@ -13,10 +13,18 @@ const generateToken = (payload, expiresIn = "2h") => {
 };
 
 const authenticateToken = (req, res, next) => {
-  const { token } = req.body;
-  if (!token) {
+  const authheader = req.headers.authorization;
+  console.log(authheader);
+
+  if (!authheader) {
     return res.status(401).json({ success: false, error: "Token not passed" });
   }
+
+  if (authheader.split(" ").length !== 2) {
+    return res.status(401).json({ success: false, error: "Token is invalid" });
+  }
+
+  const token = authheader.split(" ")[1];
 
   jwt.verify(token, process.env.TOKEN_SECRET, async (err, payload) => {
     if (err) {
@@ -67,37 +75,16 @@ const login = async (req, res) => {
   }
 };
 
-// const auth = (req, res) => {
-//   try {
-//     const { token } = req.body;
-//     if (token) {
-//       jwt.verify(token, process.env.SECRET_MESSAGE, function (err, payload) {
-//         if (err) {
-//           return res.json({ success: 0, message: "Access is denied!" });
-//         }
-
-//         const { _id } = payload;
-
-//         user
-//           .findById(_id)
-//           .then((userData) => {
-//             return res.json({ success: 1, user: userData });
-//           })
-//           .catch((err) => {
-//             return res.json({ success: 0, message: err });
-//           });
-//       });
-//     } else {
-//       res.json({ succes: 0, error: "Access is denied!" });
-//     }
-//   } catch (err) {
-//     console.log(err);
-//   }
-// };
-
 const signUpController = async (req, res) => {
   try {
     const { emailToken } = req.body;
+
+    if (!emailToken) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Token is not passed!" });
+    }
+
     jwt.verify(emailToken, process.env.TOKEN_SECRET, async (err, payload) => {
       if (err) {
         return res
@@ -105,25 +92,30 @@ const signUpController = async (req, res) => {
           .json({ success: false, error: "Token is invalid" });
       }
 
-      const data = payload.data;
-      const hash_password = await bcrypt.hash(data.password, 10);
-      let userData = new User({
-        name: data.name,
-        email: data.email,
-        password: hash_password,
-        gender: data.gender,
-        country: data.country,
-        DOB: data.DOB,
-      });
+      try {
+        const data = payload.data;
+        const hash_password = await bcrypt.hash(data.password, 10);
+        let userData = new User({
+          name: data.name,
+          email: data.email,
+          password: hash_password,
+          gender: data.gender,
+          country: data.country,
+          DOB: data.DOB,
+        });
 
-      const user = await User(userData).save();
-      const token = generateToken({ id: user._id });
-      res.json({
-        success: true,
-        message: "Successful signup",
-        data: user,
-        token: token,
-      });
+        const user = await User(userData).save();
+        const token = generateToken({ id: user._id });
+        res.json({
+          success: true,
+          message: "Successful signup",
+          data: user,
+          token: token,
+        });
+      } catch (err) {
+        console.log(err);
+        res.json({ success: false, error: "Signup unsuccessful" });
+      }
     });
   } catch (err) {
     console.log(err);
@@ -141,7 +133,7 @@ const sendEmail = async (req, res) => {
     } else {
       const token = generateToken({ data: data }, (expiresIn = "10m"));
 
-      //TODO: send email here
+      //send email here
       const transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE,
         auth: {
