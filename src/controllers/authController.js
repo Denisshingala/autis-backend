@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
 const nodemailer = require("nodemailer");
+const { default: isEmail } = require("validator/lib/isemail");
 
 dotenv.config();
 
@@ -50,6 +51,12 @@ const login = async (req, res) => {
     return res
       .status(400)
       .json({ success: false, error: "Email and Password are required!" });
+  }
+
+  if (!isEmail(email)) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Email is not valid!!" });
   }
 
   const user = await User.findOne({ email: email });

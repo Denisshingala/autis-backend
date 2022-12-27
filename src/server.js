@@ -5,6 +5,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 
 const authenticationRoute = require("./routes/authentication");
+const userRoute = require("./routes/user");
 const gameRoute = require("./routes/game");
 const userGameStatusRoute = require("./routes/userGameStatus");
 const { authenticateToken } = require("./controllers/authController");
@@ -29,6 +30,7 @@ app.use(
 );
 
 app.use("/", authenticationRoute);
+app.use("/user", authenticateToken, userRoute);
 app.use("/game", authenticateToken, gameRoute);
 app.use("/userGameStatus", authenticateToken, userGameStatusRoute);
 
