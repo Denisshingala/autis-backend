@@ -126,6 +126,7 @@ const signUpController = async (req, res) => {
 const sendEmail = async (req, res) => {
   try {
     const data = req.body;
+    console.log(data);
     // for check user is exist or not
     const check = await User.findOne({ email: data.email });
     if (check) {
@@ -153,16 +154,19 @@ const sendEmail = async (req, res) => {
 
       transporter.sendMail(mailOptions, (err) => {
         if (err) {
+          console.log(err);
           console.log("Email not sent!");
+          res.json({
+            success: false,
+            error: "Email not sent!",
+          });
         } else {
           console.log("Email sent!");
+          res.json({
+            success: true,
+            message: "Email sent, verify email now!",
+          });
         }
-      });
-
-      res.json({
-        success: true,
-        message: "Email sent, verify email now!",
-        token: token,
       });
     }
   } catch (err) {
